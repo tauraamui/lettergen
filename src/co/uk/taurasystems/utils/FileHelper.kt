@@ -47,5 +47,15 @@ class FileHelper {
             }
             return fileToSave.absolutePath
         }
+
+        fun getFileExt(file: File?): String {
+            //We don't care if the file exists, using 'File' is a convenient way to know the whole intended path etc.,
+            if (file == null) return ""
+            if (file.name.contains(".")) {
+                return file.name.split(".")[1]
+            } else {
+                return ""
+            }
+        }
     }
 }

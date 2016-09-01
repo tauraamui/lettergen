@@ -1,6 +1,7 @@
 package co.uk.taurasystems
 
-import co.uk.taurasystems.utils.DocHelper
+import co.uk.taurasystems.utils.ExcelDocHelper
+import co.uk.taurasystems.utils.WordDocHelper
 import co.uk.taurasystems.utils.FileHelper
 import java.io.File
 import java.io.FileOutputStream
@@ -11,13 +12,15 @@ import java.io.FileOutputStream
 
 fun main(args: Array<String>) {
     val workbook = File("Book1.xlsx")
-    val newFileToSave = File(FileHelper.getUniqueFileName(workbook))
-    val fos = FileOutputStream(newFileToSave)
-    fos.close()
-
     //Dochelper.outputPopulatedExcelSheetCellContents(workbook, 0)
 
-    for (cellData in DocHelper.getDataFromExcelSheetColumn(workbook, 0, 2)) {
+    val sheetIndex = ExcelDocHelper.getExcelSheetIndex(workbook, "Sheet1")
+    if (sheetIndex < 0) return
+    /*
+    for (cellData in ExcelDocHelper.getDataFromExcelSheetColumn(workbook, sheetIndex, 0, "NT60/ps")) {
         println(cellData)
     }
+    */
+
+    ExcelDocHelper.outputPopulatedCellData(workbook, ExcelDocHelper.getExcelSheetIndex(workbook, "Sheet1"))
 }

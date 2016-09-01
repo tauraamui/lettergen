@@ -6,6 +6,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.hwpf.HWPFDocument
 import org.apache.poi.poifs.filesystem.NotOLE2FileException
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException
+import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.xssf.usermodel.XSSFCell
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.poi.xwpf.usermodel.TextSegement
@@ -19,24 +20,9 @@ import java.util.*
 /**
  * Created by tauraaamui on 15/08/2016.
  */
-class DocHelper {
+class WordDocHelper {
 
     companion object {
-
-        var modernWordDoc = XWPFDocument()
-        var modernExcelWorkbook = XSSFWorkbook()
-
-        fun openModernWorkDoc(file: File?) {
-            if (isDocx(file)) {
-                modernWordDoc = XWPFDocument(FileInputStream(file))
-            }
-        }
-
-        fun openExcelWorkbook(file: File?) {
-            if (isModernExcelDoc(file)) {
-
-            }
-        }
 
         fun documentTitleContains(file: File, textToFind: String): Boolean {
             if (isDoc(file) && file.name.contains(textToFind)) return true
@@ -76,22 +62,22 @@ class DocHelper {
         }
 
         fun isDoc(file: File?): Boolean {
-            if (getFileExt(file) == "doc") return true
+            if (FileHelper.getFileExt(file) == "doc") return true
             return false
         }
 
         fun isDocx(file: File?): Boolean {
-            if (getFileExt(file) == "docx") return true
+            if (FileHelper.getFileExt(file) == "docx") return true
             return false
         }
 
         fun isModernExcelDoc(file: File?): Boolean {
-            if (getFileExt(file) == "xlsx") return true
+            if (FileHelper.getFileExt(file) == "xlsx") return true
             return false
         }
 
         fun isLegacyExcelDoc(file: File?): Boolean {
-            if (getFileExt(file) == "xls") return true
+            if (FileHelper.getFileExt(file) == "xls") return true
             return false
         }
 
@@ -142,52 +128,6 @@ class DocHelper {
                 e.printStackTrace()
             }
             return xwpfDocument
-        }
-
-        fun getFileExt(file: File?): String {
-            if (file == null) return ""
-            if (file.name.contains(".")) {
-                return file.name.split(".")[1]
-            } else {
-                return ""
-            }
-        }
-
-        fun outputPopulatedExcelSheetCellContents(file: File?, sheetIndex: Int) {
-            if (file?.exists()!!) {
-                val workbook = XSSFWorkbook(FileInputStream(file))
-                val sheetToReadFrom = workbook.getSheetAt(sheetIndex)
-
-                for (row in sheetToReadFrom) {
-                    for (cell in row) {
-                        if (cell.cellType == XSSFCell.CELL_TYPE_NUMERIC) {
-                            print("\t\t${cell.numericCellValue}")
-                        } else if (cell.cellType == XSSFCell.CELL_TYPE_FORMULA) {
-                            if (cell.cachedFormulaResultType == XSSFCell.CELL_TYPE_NUMERIC) {
-                                print("\t\t${cell.numericCellValue}")
-                            }
-                        }
-                    }
-                    println()
-                }
-            }
-        }
-
-        fun getDataFromExcelSheetColumn(file: File?, sheetIndex: Int, columnIndex: Int): ArrayList<String> {
-            val columnData = ArrayList<String>()
-            if (file?.exists()!!) {
-                val workbook = XSSFWorkbook(FileInputStream(file))
-                val sheet = workbook.getSheetAt(sheetIndex)
-                for (row in sheet) {
-                    columnData.add(row.getCell(columnIndex).numericCellValue.toString())
-                }
-            }
-            return columnData
-        }
-
-        fun getDataFromExcelSheetColumn(file: File?, sheetIndex: Int, columnName: String) {
-            var columnIndex = -1
-            val workbook = XSSFWorkbook(FileInputStream(file))
         }
     }
 }
