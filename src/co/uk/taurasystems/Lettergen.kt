@@ -16,11 +16,5 @@ fun main(args: Array<String>) {
 
     val sheetIndex = ExcelDocHelper.getExcelSheetIndex(workbook, "Sheet1")
     if (sheetIndex < 0) return
-    /*
-    for (cellData in ExcelDocHelper.getDataFromExcelSheetColumn(workbook, sheetIndex, 0, "NT60/ps")) {
-        println(cellData)
-    }
-    */
-
     ExcelDocHelper.outputPopulatedCellData(workbook, ExcelDocHelper.getExcelSheetIndex(workbook, "Sheet1"))
 }

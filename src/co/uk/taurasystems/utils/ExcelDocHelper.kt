@@ -75,17 +75,19 @@ class ExcelDocHelper {
                     }
                     println()
                 }
+                workbook.close()
             }
         }
 
         fun getDataFromExcelSheetColumn(file: File, sheetIndex: Int, columnIndex: Int): ArrayList<String> {
             val columnData = ArrayList<String>()
-            if (file?.exists()!!) {
+            if (file.exists()) {
                 val workbook = XSSFWorkbook(FileInputStream(file))
                 val sheet = workbook.getSheetAt(sheetIndex)
                 for (row in sheet) {
                     columnData.add(row.getCell(columnIndex).getCellValueAsString())
                 }
+                workbook.close()
             }
             return columnData
         }
@@ -94,7 +96,7 @@ class ExcelDocHelper {
             var columnIndex = -1
             val data = ArrayList<String>()
 
-            if (file?.exists()!!) {
+            if (file.exists()) {
                 val workbook = XSSFWorkbook(FileInputStream(file))
                 val sheet = workbook.getSheetAt(sheetIndex)
                 val columnNamesRow = sheet.getRow(columnNamesRowIndex)
@@ -103,6 +105,7 @@ class ExcelDocHelper {
                         columnIndex = cell.columnIndex
                     }
                 }
+                workbook.close()
             }
             if (columnIndex >= 0) {
                 return getDataFromExcelSheetColumn(file, sheetIndex, columnIndex)
@@ -111,9 +114,11 @@ class ExcelDocHelper {
         }
 
         fun getExcelSheetIndex(file: File, sheetName: String): Int {
-            if (file?.exists()!!) {
+            if (file.exists()) {
                 val workbook = XSSFWorkbook(FileInputStream(file))
-                return workbook.getSheetIndex(sheetName)
+                val sheetIndex = workbook.getSheetIndex(sheetName)
+                workbook.close()
+                return sheetIndex
             }
             return -1
         }
