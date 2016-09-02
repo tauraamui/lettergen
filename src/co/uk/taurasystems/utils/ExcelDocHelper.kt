@@ -1,6 +1,7 @@
 package co.uk.taurasystems.utils
 
 import co.uk.taurasystems.utils.ExcelDocHelper.Companion.getCellValueAsString
+import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.xssf.usermodel.XSSFCell
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
@@ -14,6 +15,14 @@ import java.util.*
 class ExcelDocHelper {
 
     companion object {
+
+        private var modernWorkbook = XSSFWorkbook()
+        private var modernWorkbookOpen = false
+
+        private var legacyWorkbook = HSSFWorkbook()
+        private var legacyWorkbookOpen = false
+
+        enum class WorkbookType {MODERN, LEGACY }
 
         //Extension function for Cell
         fun Cell.getCellValueAsString(): String {
@@ -64,61 +73,117 @@ class ExcelDocHelper {
             return ""
         }
 
-        fun outputPopulatedCellData(file: File, sheetIndex: Int) {
+        fun openWorkbook(file: File) {
+            closeWorkbook()
             if (file.exists()) {
-                val workbook = XSSFWorkbook(FileInputStream(file))
-                val sheet = workbook.getSheetAt(sheetIndex)
-
-                for (row in sheet) {
-                    for (cell in row) {
-                        print("\t\t${cell.getCellValueAsString()}")
-                    }
-                    println()
+                if (FileHelper.getFileExt(file) == "xlsx") {
+                    openModernWorkbook(file)
+                } else if (FileHelper.getFileExt(file) == "xls") {
+                    openLegacyWorkbook(file)
+                } else {
+                    //TODO: Need to change exception type to something more relevant
+                    throw Exception("Incorrect file extension for Excel workbooks")
                 }
-                workbook.close()
             }
         }
 
-        fun getDataFromExcelSheetColumn(file: File, sheetIndex: Int, columnIndex: Int): ArrayList<String> {
+        fun closeWorkbook() {
+            closeModernWorkbook()
+            closeLegacyWorkbook()
+        }
+
+        private fun openModernWorkbook(file: File) {
+            modernWorkbook = XSSFWorkbook(FileInputStream(file))
+            modernWorkbookOpen = true
+        }
+
+        private fun closeModernWorkbook() {
+            if (modernWorkbookOpen) {
+                modernWorkbook.close()
+                modernWorkbookOpen = false
+            }
+        }
+
+        private fun openLegacyWorkbook(file: File) {
+            legacyWorkbook = HSSFWorkbook(FileInputStream(file))
+            legacyWorkbookOpen = true
+        }
+
+        private fun closeLegacyWorkbook() {
+            if (legacyWorkbookOpen) {
+                legacyWorkbook.close()
+                legacyWorkbookOpen = false
+            }
+        }
+
+        fun outputPopulatedCellDataInSheet(sheetIndex: Int) {
+            if (legacyWorkbookOpen) {
+                val sheet = legacyWorkbook.getSheetAt(sheetIndex)
+                for (row in sheet) {
+                    for (cell in row) {
+                        print("\t${cell.getCellValueAsString()}")
+                    }
+                    println()
+                }
+            } else if (modernWorkbookOpen) {
+                val sheet = modernWorkbook.getSheetAt(sheetIndex)
+                for (row in sheet) {
+                    for (cell in row) {
+                        print("\t${cell.getCellValueAsString()}")
+                    }
+                    println()
+                }
+            }
+        }
+
+        fun getDataFromExcelSheetColumn(sheetIndex: Int, columnIndex: Int): ArrayList<String> {
             val columnData = ArrayList<String>()
-            if (file.exists()) {
-                val workbook = XSSFWorkbook(FileInputStream(file))
-                val sheet = workbook.getSheetAt(sheetIndex)
+            if (legacyWorkbookOpen) {
+                val sheet = legacyWorkbook.getSheetAt(sheetIndex)
                 for (row in sheet) {
                     columnData.add(row.getCell(columnIndex).getCellValueAsString())
                 }
-                workbook.close()
+            } else if (modernWorkbookOpen) {
+                val sheet = modernWorkbook.getSheetAt(sheetIndex)
+                for (row in sheet) {
+                    columnData.add(row.getCell(columnIndex).getCellValueAsString())
+                }
             }
             return columnData
         }
 
-        fun getDataFromExcelSheetColumn(file: File, sheetIndex: Int, columnNamesRowIndex: Int, columnName: String): ArrayList<String> {
+        fun getDataFromExcelSheetColumn(sheetIndex: Int, columnNamesRowIndex: Int, columnName: String): ArrayList<String> {
             var columnIndex = -1
             val data = ArrayList<String>()
 
-            if (file.exists()) {
-                val workbook = XSSFWorkbook(FileInputStream(file))
-                val sheet = workbook.getSheetAt(sheetIndex)
+            if (legacyWorkbookOpen) {
+                val sheet = legacyWorkbook.getSheetAt(sheetIndex)
                 val columnNamesRow = sheet.getRow(columnNamesRowIndex)
                 for (cell in columnNamesRow) {
                     if (cell.getCellValueAsString() == columnName) {
                         columnIndex = cell.columnIndex
                     }
                 }
-                workbook.close()
+            } else if (modernWorkbookOpen) {
+                val sheet = modernWorkbook.getSheetAt(sheetIndex)
+                val columnNamesRow = sheet.getRow(columnNamesRowIndex)
+                for (cell in columnNamesRow) {
+                    if (cell.getCellValueAsString() == columnName) {
+                        columnIndex = cell.columnIndex
+                    }
+                }
             }
             if (columnIndex >= 0) {
-                return getDataFromExcelSheetColumn(file, sheetIndex, columnIndex)
+                return getDataFromExcelSheetColumn(sheetIndex, columnIndex)
             }
             return data
         }
 
-        fun getExcelSheetIndex(file: File, sheetName: String): Int {
-            if (file.exists()) {
-                val workbook = XSSFWorkbook(FileInputStream(file))
-                val sheetIndex = workbook.getSheetIndex(sheetName)
-                workbook.close()
-                return sheetIndex
+        fun getExcelSheetIndex(sheetName: String): Int {
+            if (legacyWorkbookOpen) {
+                return legacyWorkbook.getSheetIndex(sheetName)
+            } else if (modernWorkbookOpen) {
+                return modernWorkbook.getSheetIndex(sheetName)
             }
             return -1
         }
