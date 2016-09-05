@@ -1,55 +1,88 @@
 package co.uk.taurasystems
 
 import co.uk.taurasystems.utils.ExcelDocHelper
+import co.uk.taurasystems.utils.WordDocHelper
 import org.apache.poi.ss.formula.functions.T
+import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.io.File
+import java.io.FileOutputStream
 import java.util.*
 
 /**
  * Created by alewis on 01/09/2016.
  */
 
-fun main(args: Array<String>) {
-    if (args.isNotEmpty()) {
+class Lettergen {
 
-        val workbook = File(args[0])
-        ExcelDocHelper.openWorkbook(workbook)
+    var excelFilePath = ""
+    var letterTemplateFilePath = ""
+    val recipientsList = arrayListOf<Recipient>()
 
+    fun init() {
+        setupRecipients()
+    }
+
+    fun setupRecipients() {
+        val excelDocument = File(excelFilePath)
+        if (excelDocument.exists()) {
+            ExcelDocHelper.openWorkbook(excelDocument)
+            mapExcelDataToRecipients()
+            outputLetterTemplateContent()
+        }
+    }
+
+    fun mapExcelDataToRecipients() {
         val memberIDs = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "mem")
         val recipientTitles = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Title")
-        val recipientFirstname = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Given")
+        val recipientFirstnames = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Given")
         val familyNames = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Family")
-        val otherPerson = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Other Person")
         val addressees = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Addressee")
+        val otherPerson = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Other Person")
+        val houseNumberNames = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "s#")
+        val streetNames = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Street")
+        val townNames = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Town")
+        val postCodes = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Postcode")
+        val telephoneNumbers = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Tel")
+        val emailAddresses = ExcelDocHelper.getDataFromExcelSheetColumn(0, 0, "Email")
 
-        val recipientList = ArrayList<Recipient>()
-
-        val listsSizes = memberIDs.size
-        if (recipientTitles.size == listsSizes && recipientFirstname.size == listsSizes && familyNames.size == listsSizes && otherPerson.size == listsSizes && addressees.size == listsSizes) {
-            for (i in 0..listsSizes-1) {
-                val recipient = Recipient(-1, "", "", "", "", "")
-                var idToSet = -1
-                try {
-                    val memberIDAsFloat = memberIDs[i].toFloat()
-                    idToSet = memberIDAsFloat.toInt()
-                } catch (e: Exception) {}
-                recipient.memberID = idToSet
-                recipient.title = recipientTitles[i]
-                recipient.firstName = recipientFirstname[i]
-                recipient.surname = familyNames[i]
-                recipient.addressee = addressees[i]
-                recipient.otherPerson = otherPerson[i]
-                recipientList.add(recipient)
-            }
-            recipientList.removeIf {
-                it.memberID < 0
-            }
+        for (i in 0..memberIDs.size-1) {
+            recipientsList.add(Recipient(fromStringToFloatToLong(memberIDs[i]), recipientTitles[i].trim(), recipientFirstnames[i].trim(),
+                                         familyNames[i].trim(), addressees[i].trim(), fromStringToFloatToLong(otherPerson[i].trim()),
+                                            formatHouseNumberString(houseNumberNames[i]).replace(".", ""), streetNames[i].trim(), townNames[i].trim(), postCodes[i].trim(), telephoneNumbers[i].trim(), emailAddresses[i].trim()))
         }
+        recipientsList.removeIf { it.memberID < 0 }
 
-        for (recipient in recipientList) {
-            println(recipient)
+        recipientsList.forEach { println(it) }
+    }
+
+    fun outputLetterTemplateContent() {
+        val map = HashMap<String, String?>()
+        map.putIfAbsent("<Address1Line1>", "Testing")
+        WordDocHelper.replaceTagsInModernWordDoc(File(letterTemplateFilePath), map)
+    }
+
+    fun formatHouseNumberString(stringToFormat: String): String {
+        if (stringToFormat.contains(".")) {
+            return stringToFormat.substring(0, stringToFormat.lastIndexOf("."))
         }
+        return stringToFormat
+    }
 
-        ExcelDocHelper.closeWorkbook()
+    fun fromStringToFloatToLong(string: String): Long {
+        try {
+            val converted = string.toFloat().toLong()
+            return converted
+        } catch (e: Exception) {
+            return -1
+        }
+    }
+}
+
+fun main(args: Array<String>) {
+    if (args.size >= 1) {
+        val letterGen = Lettergen()
+        letterGen.excelFilePath = args[0]
+        letterGen.letterTemplateFilePath = args[1]
+        letterGen.init()
     }
 }
