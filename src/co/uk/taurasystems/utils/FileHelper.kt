@@ -51,5 +51,9 @@ class FileHelper {
                 return ""
             }
         }
+
+        fun fileTitleContains(file: File?, textToFind: String): Boolean {
+            return file?.name!!.contains(textToFind)
+        }
     }
 }

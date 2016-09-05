@@ -1,5 +1,6 @@
 package co.uk.taurasystems
 
+import co.uk.taurasystems.models.Recipient
 import co.uk.taurasystems.utils.ExcelDocHelper
 import co.uk.taurasystems.utils.WordDocHelper
 import org.apache.poi.ss.formula.functions.T
@@ -47,18 +48,23 @@ class Lettergen {
 
         for (i in 0..memberIDs.size-1) {
             recipientsList.add(Recipient(fromStringToFloatToLong(memberIDs[i]), recipientTitles[i].trim(), recipientFirstnames[i].trim(),
-                                         familyNames[i].trim(), addressees[i].trim(), fromStringToFloatToLong(otherPerson[i].trim()),
-                                            formatHouseNumberString(houseNumberNames[i]).replace(".", ""), streetNames[i].trim(), townNames[i].trim(), postCodes[i].trim(), telephoneNumbers[i].trim(), emailAddresses[i].trim()))
+                    familyNames[i].trim(), addressees[i].trim(), fromStringToFloatToLong(otherPerson[i].trim()),
+                    formatHouseNumberString(houseNumberNames[i]).replace(".", ""), streetNames[i].trim(), townNames[i].trim(), postCodes[i].trim(), telephoneNumbers[i].trim(), emailAddresses[i].trim()))
         }
         recipientsList.removeIf { it.memberID < 0 }
 
         recipientsList.forEach { println(it) }
+        WordDocHelper.openWordDocument(File(letterTemplateFilePath))
+        WordDocHelper.replaceTextInDocument("<Addressee>", "Fuck Face")
+        println(WordDocHelper.getDocumentContent())
     }
 
     fun outputLetterTemplateContent() {
         val map = HashMap<String, String?>()
         map.putIfAbsent("<Address1Line1>", "Testing")
-        WordDocHelper.replaceTagsInModernWordDoc(File(letterTemplateFilePath), map)
+        for ((key, value) in map) {
+            WordDocHelper.replaceTextInDocument(key, value)
+        }
     }
 
     fun formatHouseNumberString(stringToFormat: String): String {

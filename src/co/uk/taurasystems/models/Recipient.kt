@@ -1,4 +1,4 @@
-package co.uk.taurasystems
+package co.uk.taurasystems.models
 
 /**
  * Created by alewis on 02/09/2016.

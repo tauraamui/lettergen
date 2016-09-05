@@ -1,19 +1,12 @@
 package co.uk.taurasystems.utils;
 
-import jdk.nashorn.internal.runtime.ScriptRuntime
-import org.apache.poi.hssf.usermodel.HSSFRow
-import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.hwpf.HWPFDocument
 import org.apache.poi.poifs.filesystem.NotOLE2FileException
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException
-import org.apache.poi.ss.usermodel.Cell
-import org.apache.poi.xssf.usermodel.XSSFCell
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.apache.poi.xwpf.usermodel.TextSegement
 import org.apache.poi.xwpf.usermodel.XWPFDocument
+import sun.reflect.CallerSensitive
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.*
 
@@ -24,41 +17,87 @@ class WordDocHelper {
 
     companion object {
 
-        fun documentTitleContains(file: File, textToFind: String): Boolean {
-            if (isDoc(file) && file.name.contains(textToFind)) return true
-            else if (isDocx(file) && file.name.contains(textToFind)) return true
-            return false
-        }
+        private var legacyWordDocument: HWPFDocument? = null
+        private var legacyWordDocumentOpen = false
 
-        fun documentTitleContains(file: File, textToFind: String, toLower: Boolean): Boolean {
-            if (!toLower) return documentTitleContains(file, textToFind)
-            if (isDoc(file) && file.name.toLowerCase().contains(textToFind.toLowerCase())) return true
-            else if (isDocx(file) && file.name.toLowerCase().contains(textToFind.toLowerCase())) return true
-            return false
-        }
+        private var modernWordDocument = XWPFDocument()
+        private var modernWordDocumentOpen = false
 
-        fun documentContains(file: File, textToFind: String): Boolean {
-            if (isDoc(file)) {
-                try {
-                    val hwpfDocument = HWPFDocument(FileInputStream(file))
-                    for (i in 0..hwpfDocument.range.numParagraphs()-1) {
-                        if (hwpfDocument.range.getParagraph(i).text().toLowerCase().contains(textToFind.toLowerCase())) return true
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            } else if (isDocx(file)) {
-                try {
-                    //TODO: Check to make sure this is actually they way to do string searching within a docx file...
-                    val xwpfDocument = XWPFDocument(FileInputStream(file))
-                    for (paragraph in xwpfDocument.paragraphsIterator) {
-                        if (paragraph.text.contains(textToFind)) return true
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
+        fun openWordDocument(file: File?) {
+            if (file == null) return
+            closeWordDocument()
+            if (file.exists()) {
+                if (FileHelper.getFileExt(file) == "docx") {
+                    openModernWordDocument(file)
+                } else if (FileHelper.getFileExt(file) == "doc") {
+                    openLegacyWordDocument(file)
+                } else {
+                    //TODO: Need to change exception type to something more relevant
+                    throw Exception("Incorrect file extension for Excel workbooks")
                 }
             }
-            return false
+        }
+
+        private fun openModernWordDocument(file: File?) {
+            modernWordDocument = XWPFDocument(FileInputStream(file))
+            modernWordDocumentOpen = true
+        }
+
+        private fun openLegacyWordDocument(file: File?) {
+            if (file == null) return
+            legacyWordDocument = HWPFDocument(FileInputStream(file))
+            legacyWordDocumentOpen = true
+        }
+
+        fun closeWordDocument() {
+            closeLegacyWordDocument()
+            closeModernWordDocument()
+        }
+
+        private fun closeLegacyWordDocument() {
+            if (legacyWordDocumentOpen) {
+                legacyWordDocument?.dataStream?.inputStream()?.close()
+                legacyWordDocumentOpen = false
+            }
+        }
+
+        private fun closeModernWordDocument() {
+            if (modernWordDocumentOpen) {
+                modernWordDocument.close()
+                modernWordDocumentOpen = false
+            }
+        }
+
+        fun documentContains(textToFind: String): Boolean {
+            var textFound = false
+            if (legacyWordDocumentOpen) {
+                for (i in 0..legacyWordDocument?.range?.numParagraphs()!! - 1) {
+                    textFound = (legacyWordDocument?.range?.getParagraph(i)?.text()?.contains(textToFind)!!)
+                    break
+                }
+            } else if (modernWordDocumentOpen) {
+                for (paragraph in modernWordDocument.paragraphsIterator) {
+                    textFound = (paragraph.text.contains(textToFind))
+                    break
+                }
+            }
+            return textFound
+        }
+
+        fun documentContains(textToFind: String, caseSensitive: Boolean): Boolean {
+            var textFound = false
+            if (!caseSensitive) documentContains(textToFind)
+            if (legacyWordDocumentOpen) {
+                for (i in 0..legacyWordDocument?.range?.numParagraphs()!! - 1) {
+                    textFound = (legacyWordDocument?.range?.getParagraph(i)?.text()?.toLowerCase()?.contains(textToFind.toLowerCase())!!)
+                    break
+                }
+            } else if (modernWordDocumentOpen) {
+                for (paragraph in modernWordDocument.paragraphsIterator) {
+                    textFound = (paragraph.text.toLowerCase().contains(textToFind.toLowerCase()))
+                }
+            }
+            return textFound
         }
 
         fun isDoc(file: File?): Boolean = if (FileHelper.getFileExt(file) == "doc") true else false
@@ -69,53 +108,40 @@ class WordDocHelper {
 
         fun isLegacyExcelDoc(file: File?): Boolean = if (FileHelper.getFileExt(file) == "xls") true else false
 
-        fun findAndReplaceTagsInWordDoc(file: File?, keysAndValues: HashMap<String, String?>): Any? {
-            if (isDoc(file)) {
-                return replaceTagsInLegacyWordDoc(file, keysAndValues)
-            } else if (isDocx(file)) {
-                return replaceTagsInModernWordDoc(file, keysAndValues)
-            } else {
-                throw Exception("extension must match either '.doc' or '.docx'")
-            }
-        }
-
-        fun replaceTagsInLegacyWordDoc(file: File?, keysAndValues: HashMap<String, String?>): HWPFDocument? {
-            var hwpfDocument: HWPFDocument? = null
-            try {
-                hwpfDocument = HWPFDocument(FileInputStream(file))
-                val range = hwpfDocument.range
-                for (i in 0.. range.numParagraphs()-1) {
-                    val paragraph = range.getParagraph(i)
-                    for (j in 0..paragraph.numCharacterRuns()-1) {
-                        val run = paragraph.getCharacterRun(j)
-                        for ((key, value) in keysAndValues) {
-                            run.replaceText(key, value)
-                        }
+        fun replaceTextInDocument(stringTextToReplace: String, stringToReplaceWith: String?) {
+            if (legacyWordDocumentOpen) {
+                for (i in 0..legacyWordDocument?.range?.numParagraphs()!!-1) {
+                    val paragraph = legacyWordDocument?.range?.getParagraph(i)
+                    for (j in 0..paragraph?.numCharacterRuns()!!-1) {
+                        val run = paragraph?.getCharacterRun(j)
+                        run?.replaceText(stringTextToReplace, stringToReplaceWith)
                     }
                 }
-                hwpfDocument.dataStream.inputStream().close()
-            } catch (e: OfficeXmlFileException) {
-                println("Document ${file?.name} is a newer .docx format...")
-            } catch (e: NotOLE2FileException) {
-                println("Document ${file?.name} has an invalid header signature")
-            } catch (e: IOException) {
-                e.printStackTrace()
+            } else if (modernWordDocumentOpen) {
+                for (paragraph in modernWordDocument.paragraphsIterator) {
+                    paragraph.text.replace(stringTextToReplace, stringToReplaceWith!!)
+                    paragraph.text
+                }
             }
-            return hwpfDocument
         }
 
-        fun replaceTagsInModernWordDoc(file: File?, keysAndValues: HashMap<String, String?>): XWPFDocument? {
-            var xwpfDocument: XWPFDocument? = null
-            try {
-                xwpfDocument = XWPFDocument(FileInputStream(file))
-                xwpfDocument.paragraphs.forEach {
-                    println(it.text)
+        fun getDocumentContent(): String {
+            if (legacyWordDocumentOpen) {
+                for (i in 0..legacyWordDocument?.range?.numParagraphs()!!-1) {
+                    val paragraph = legacyWordDocument?.range?.getParagraph(i)
+                    for (j in 0..paragraph?.numCharacterRuns()!!-1) {
+                        val run = paragraph?.getCharacterRun(j)
+                        println(run?.text())
+                    }
                 }
-                xwpfDocument.close()
-            } catch (e: IOException) {
-                e.printStackTrace()
+                return ""
+            } else if (modernWordDocumentOpen) {
+                for (paragraph in modernWordDocument.paragraphsIterator) {
+                    println(paragraph.text)
+                }
+                return ""
             }
-            return xwpfDocument
+            return "Document console out failed..."
         }
     }
 }
