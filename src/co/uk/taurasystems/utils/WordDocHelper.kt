@@ -61,25 +61,13 @@ class WordDocHelper {
             return false
         }
 
-        fun isDoc(file: File?): Boolean {
-            if (FileHelper.getFileExt(file) == "doc") return true
-            return false
-        }
+        fun isDoc(file: File?): Boolean = if (FileHelper.getFileExt(file) == "doc") true else false
 
-        fun isDocx(file: File?): Boolean {
-            if (FileHelper.getFileExt(file) == "docx") return true
-            return false
-        }
+        fun isDocx(file: File?): Boolean = if (FileHelper.getFileExt(file) == "docx") true else false
 
-        fun isModernExcelDoc(file: File?): Boolean {
-            if (FileHelper.getFileExt(file) == "xlsx") return true
-            return false
-        }
+        fun isModernExcelDoc(file: File?): Boolean = if (FileHelper.getFileExt(file) == "xlsx") true else false
 
-        fun isLegacyExcelDoc(file: File?): Boolean {
-            if (FileHelper.getFileExt(file) == "xls") return true
-            return false
-        }
+        fun isLegacyExcelDoc(file: File?): Boolean = if (FileHelper.getFileExt(file) == "xls") true else false
 
         fun findAndReplaceTagsInWordDoc(file: File?, keysAndValues: HashMap<String, String?>): Any? {
             if (isDoc(file)) {

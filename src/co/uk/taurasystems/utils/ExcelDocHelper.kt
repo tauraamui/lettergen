@@ -5,6 +5,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.xssf.usermodel.XSSFCell
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTExternalSheetName
 import java.io.File
 import java.io.FileInputStream
 import java.util.*
@@ -21,8 +22,6 @@ class ExcelDocHelper {
 
         private var legacyWorkbook = HSSFWorkbook()
         private var legacyWorkbookOpen = false
-
-        enum class WorkbookType {MODERN, LEGACY }
 
         //Extension function for Cell
         fun Cell.getCellValueAsString(): String {
@@ -136,25 +135,25 @@ class ExcelDocHelper {
             }
         }
 
-        fun getDataFromExcelSheetColumn(sheetIndex: Int, columnIndex: Int): ArrayList<String> {
-            val columnData = ArrayList<String>()
+        fun getDataFromExcelSheetColumn(sheetIndex: Int, columnIndex: Int): Array<String> {
+            val columnData = arrayOf<String>()
             if (legacyWorkbookOpen) {
                 val sheet = legacyWorkbook.getSheetAt(sheetIndex)
                 for (row in sheet) {
-                    columnData.add(row.getCell(columnIndex).getCellValueAsString())
+                    columnData.plus(row.getCell(columnIndex).getCellValueAsString())
                 }
             } else if (modernWorkbookOpen) {
                 val sheet = modernWorkbook.getSheetAt(sheetIndex)
                 for (row in sheet) {
-                    columnData.add(row.getCell(columnIndex).getCellValueAsString())
+                    columnData.plus(row.getCell(columnIndex).getCellValueAsString())
                 }
             }
             return columnData
         }
 
-        fun getDataFromExcelSheetColumn(sheetIndex: Int, columnNamesRowIndex: Int, columnName: String): ArrayList<String> {
+        fun getDataFromExcelSheetColumn(sheetIndex: Int, columnNamesRowIndex: Int, columnName: String): Array<String> {
             var columnIndex = -1
-            val data = ArrayList<String>()
+            val data = arrayOf<String>()
 
             if (legacyWorkbookOpen) {
                 val sheet = legacyWorkbook.getSheetAt(sheetIndex)
