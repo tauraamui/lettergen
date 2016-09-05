@@ -11,7 +11,6 @@ class FileHelper {
 
         fun getUniqueFileName(file: File): String {
             var extension = ""
-
             if (file.absolutePath.contains(".")) {
                 extension = file.absolutePath.substring(file.absolutePath.lastIndexOf("."), file.absolutePath.length).replace(".", "")
                 val fileWithoutExt = File(file.absolutePath.substring(0, file.absolutePath.lastIndexOf(".")).replace(".", ""))
@@ -19,7 +18,6 @@ class FileHelper {
             } else {
                 var fileToSave = file
                 var versionSuffix = 1
-
                 if (!file.exists()) return file.absolutePath
                 fileToSave = File("${file.absolutePath} $versionSuffix")
 
@@ -32,15 +30,11 @@ class FileHelper {
         }
 
         fun getUniqueFileNameSepExt(file: File, extension: String): String {
-
             var fileToSave = file
             var versionSuffix = 1
-
             val firstFile = File(file.absolutePath + "." + extension)
             if (!firstFile.exists()) return firstFile.absolutePath
-
             fileToSave = File(file.absolutePath + " $versionSuffix." + extension)
-
             while (fileToSave.exists()) {
                 fileToSave = File(file.absolutePath + " $versionSuffix." + extension)
                 versionSuffix++
